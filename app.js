@@ -56,7 +56,7 @@ function interpolateValue(column, size) {
   return lower[1] + (upper[1] - lower[1]) * ratio;
 }
 
-const cableSizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 175, 185, 240, 300, 400];
+const cableSizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400];
 const standardSizes = [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500];
 
 const pvcAirTable = buildTable(standardSizes, {
@@ -241,7 +241,42 @@ const ambientBuriedFactors = {
 const copperResistance = {
   1.5: 12.1, 2.5: 7.41, 4: 4.61, 6: 3.08, 10: 1.83, 16: 1.15, 25: 0.727,
   35: 0.524, 50: 0.387, 70: 0.268, 95: 0.193, 120: 0.153, 150: 0.124,
-  175: 0.106, 185: 0.0991, 240: 0.0754, 300: 0.0601, 400: 0.047,
+  185: 0.0991, 240: 0.0754, 300: 0.0601, 400: 0.047,
+};
+
+const conduitColumns = [
+  { mm: 15, inch: "1/2" },
+  { mm: 20, inch: "3/4" },
+  { mm: 25, inch: "1" },
+  { mm: 32, inch: "1 1/4" },
+  { mm: 40, inch: "1 1/2" },
+  { mm: 50, inch: "2" },
+  { mm: 65, inch: "2 1/2" },
+  { mm: 80, inch: "3" },
+  { mm: 90, inch: "3 1/2" },
+  { mm: 100, inch: "4" },
+  { mm: 125, inch: "5" },
+  { mm: 150, inch: "6" },
+];
+
+const iec01ConduitFill = {
+  1.5: [8, 14, 22, 37, null, null, null, null, null, null, null, null],
+  2.5: [5, 10, 15, 25, null, null, null, null, null, null, null, null],
+  4: [4, 7, 11, 19, 30, null, null, null, null, null, null, null],
+  6: [3, 5, 9, 15, 23, 37, null, null, null, null, null, null],
+  10: [1, 3, 5, 9, 14, 22, null, null, null, null, null, null],
+  16: [1, 2, 4, 6, 10, 16, 27, 42, null, null, null, null],
+  25: [1, 2, 2, 4, 6, 10, 17, 27, 34, null, null, null],
+  35: [1, 1, 2, 3, 5, 8, 14, 21, 27, 33, null, null],
+  50: [null, 1, 1, 1, 3, 6, 10, 15, 19, 24, 38, null],
+  70: [null, null, 1, 1, 3, 4, 7, 12, 15, 18, 29, 42],
+  95: [null, null, 1, 1, 1, 3, 5, 8, 11, 13, 21, 30],
+  120: [null, null, null, 1, 1, 2, 4, 7, 9, 11, 17, 25],
+  150: [null, null, null, 1, 1, 1, 3, 5, 7, 9, 14, 20],
+  185: [null, null, null, 1, 1, 1, 3, 4, 6, 7, 11, 16],
+  240: [null, null, null, null, 1, 1, 1, 3, 4, 5, 8, 12],
+  300: [null, null, null, null, null, 1, 1, 2, 3, 4, 7, 10],
+  400: [null, null, null, null, null, 1, 1, 1, 2, 3, 5, 8],
 };
 
 function nearestFactor(factors, temp) {
@@ -303,7 +338,7 @@ function initCableTool() {
     .map((size) => `<option value="${size}">${size === 0 ? "ไม่ระบุ" : `${size} A`}</option>`)
     .join("");
   $("#breaker-size").value = "32";
-  $("#selected-cable-size").innerHTML = cableSizes.map((size) => `<option value="${size}">${formatSize(size)}${size === 175 ? " (ประมาณ)" : ""}</option>`).join("");
+  $("#selected-cable-size").innerHTML = cableSizes.map((size) => `<option value="${size}">${formatSize(size)}</option>`).join("");
   $("#selected-cable-size").value = "10";
   $("#ambient-temp").innerHTML = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
     .map((temp) => `<option value="${temp}">${temp} °C</option>`)
@@ -319,7 +354,10 @@ function initCableTool() {
     renderCable();
   });
 
-  $("#install-method").addEventListener("change", renderCable);
+  $("#install-method").addEventListener("change", () => {
+    renderCableMethodButtons();
+    renderCable();
+  });
   $("#core-type").addEventListener("change", renderCable);
   $("#cable-form").addEventListener("input", renderCable);
   $("#cable-form").addEventListener("change", renderCable);
@@ -341,6 +379,23 @@ function updateCableMethodOptions() {
     return `<option value="${methodId}">${method.label}</option>`;
   }).join("");
   $("#install-method").value = type.methods.includes(current) ? current : type.methods[0];
+  renderCableMethodButtons();
+}
+
+function renderCableMethodButtons() {
+  const type = selectedCableType();
+  $("#method-option-list").innerHTML = type.methods.map((methodId) => {
+    const method = installMethods[methodId];
+    const active = $("#install-method").value === methodId ? " is-active" : "";
+    return `<button type="button" class="option-chip${active}" data-method="${methodId}">${method.label}</button>`;
+  }).join("");
+  $$("#method-option-list .option-chip").forEach((button) => {
+    button.addEventListener("click", () => {
+      $("#install-method").value = button.dataset.method;
+      renderCableMethodButtons();
+      renderCable();
+    });
+  });
 }
 
 function updateCableCoreOptions() {
@@ -363,6 +418,8 @@ function renderCable() {
   const selectedSize = numberValue("#selected-cable-size", 10);
   const ambient = numberValue("#ambient-temp", 40);
   const groups = numberValue("#circuit-groups", 1);
+  const conduitWireCount = Math.max(1, Math.round(numberValue("#conduit-wire-count", conductorCount)));
+  const conduitType = $("#conduit-type").value;
   const phase = Number.parseInt($("#cable-phase").value, 10);
   const voltage = numberValue("#cable-voltage", phase === 3 ? 400 : 230);
   const length = numberValue("#cable-length", 0);
@@ -404,28 +461,43 @@ function renderCable() {
   $("#recommended-cable-note").textContent = recommendation
     ? `ต้องการพิกัดตารางอย่างน้อย ${formatAmp(requiredBaseAmpacity)} ก่อนปรับค่า`
     : "ควรตรวจตารางมาตรฐานเพิ่มเติมหรือแบ่งวงจร";
-  $("#adjusted-ampacity").textContent = selectedBaseAmpacity ? formatAmp(adjustedAmpacity) : "-";
-  $("#derating-note").textContent = `Ca ${ca ?? "-"} x Cg ${cg} = ${derating ? fmt.format(derating) : "-"}`;
+  $("#adjusted-ampacity").textContent = derating ? fmt.format(derating) : "-";
+  $("#derating-note").textContent = `Ca ${ca ?? "-"} x Cg ${cg} | พิกัดหลังปรับค่า ${selectedBaseAmpacity ? formatAmp(adjustedAmpacity) : "-"}`;
   $("#voltage-drop").textContent = `${fmt.format(vdPercent)}%`;
   $("#voltage-drop-note").textContent = `จำกัดไว้ ${fmt.format(vdLimit)}% จากความยาว ${fmt.format(length)} m`;
   $("#design-current").textContent = formatAmp(designCurrent);
-  $("#design-current-note").textContent = breaker > 0 ? `ใช้ CB ${formatAmp(breaker)} เป็น In` : "ใช้กระแสโหลดเป็น In";
+  $("#design-current-note").textContent = breaker > 0 ? `โหลด ${formatAmp(loadCurrent)} / CB ${formatAmp(breaker)}` : "ใช้กระแสโหลดเป็น In";
+  setStatusClass($("#design-current-card"), breaker > 0 && breaker < loadCurrent ? "is-bad" : breaker > 0 ? "is-good" : "is-warn");
+  const conduit = minimumConduitSize(selectedSize, conduitWireCount);
+  $("#conduit-size").textContent = conduit ? `${conduitType} ${conduit.mm} mm` : "เกินตาราง";
+  $("#conduit-note").textContent = conduit
+    ? `${conduit.inch}" สำหรับ IEC 01 จำนวน ${conduitWireCount} เส้น`
+    : "ตรวจตารางจำนวนสายในท่อเพิ่มเติม";
   $("#cable-breakdown").textContent = `เลือก ${type.name}, ${method.label}, ${coreLabels[core]}, ตัวนำกระแส ${conductorCount} เส้น: It >= ${fmt.format(designCurrent)} / (${ca ?? "-"} x ${cg}) = ${fmt.format(requiredBaseAmpacity)} A`;
   $("#active-table-label").textContent = `${method.label} / ${type.name}`;
 
-  renderCableReference(method, core, conductorCount, derating, recommendation);
+  renderCableReference(method, core, conductorCount, derating, recommendation, conduitWireCount, conduitType);
 }
 
-function renderCableReference(method, core, conductorCount, derating, recommendation) {
+function minimumConduitSize(size, wireCount) {
+  const row = iec01ConduitFill[size];
+  if (!row) return null;
+  const index = row.findIndex((maxWires) => maxWires !== null && maxWires >= wireCount);
+  return index >= 0 ? conduitColumns[index] : null;
+}
+
+function renderCableReference(method, core, conductorCount, derating, recommendation, conduitWireCount, conduitType) {
   $("#cable-reference-body").innerHTML = cableSizes.map((size) => {
     const base = baseAmpacity(method, core, conductorCount, size);
     if (!base) return "";
     const marker = recommendation === size ? " ✓" : "";
+    const conduit = minimumConduitSize(size, conduitWireCount);
     return `
       <tr>
         <td>${formatSize(size)}${marker}</td>
         <td>${formatAmp(base)}</td>
         <td>${formatAmp(base * derating)}</td>
+        <td>${conduit ? `${conduitType} ${conduit.mm} mm (${conduit.inch}")` : "-"}</td>
       </tr>
     `;
   }).join("");
@@ -441,16 +513,17 @@ const loadRows = Array.from({ length: 42 }, (_, index) => ({
   phase: "AUTO",
 }));
 
+const standardBreakers = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600];
+
 [
-  ["Lighting Zone A", "1P", 16, "", 100, "AUTO"],
-  ["Office Outlet", "1P", 20, "", 100, "AUTO"],
-  ["Air 48k BTU", "1P", 32, "", 100, "AUTO"],
-  ["Pump Motor", "3P", 40, "", 100, "L1-L2-L3"],
-  ["Workshop Outlet", "1P", 32, "", 80, "AUTO"],
-  ["Spare Machine", "3P", 63, "", 100, "L1-L2-L3"],
-].forEach((sample, index) => {
-  const [name, pole, cb, load, demand, phase] = sample;
-  Object.assign(loadRows[index], { name, pole, cb, load, demand, phase });
+  { circuit: 1, name: "Lighting Zone A", pole: "1P", cb: 16, load: "", demand: 100, phase: "AUTO" },
+  { circuit: 2, name: "Office Outlet", pole: "1P", cb: 20, load: "", demand: 100, phase: "AUTO" },
+  { circuit: 3, name: "Air 48k BTU", pole: "1P", cb: 32, load: "", demand: 100, phase: "AUTO" },
+  { circuit: 4, name: "Pump Motor", pole: "3P", cb: 40, load: "", demand: 100, phase: "L1-L2-L3" },
+  { circuit: 5, name: "Workshop Outlet", pole: "1P", cb: 32, load: "", demand: 80, phase: "AUTO" },
+  { circuit: 10, name: "Spare Machine", pole: "3P", cb: 63, load: "", demand: 100, phase: "L1-L2-L3" },
+].forEach((sample) => {
+  Object.assign(loadRows[sample.circuit - 1], sample);
 });
 
 function initLoadSchedule() {
@@ -470,6 +543,8 @@ function initLoadSchedule() {
   $("#phase-voltage").addEventListener("input", calculateLoadSchedule);
   $("#line-voltage").addEventListener("input", calculateLoadSchedule);
   $("#panel-pf").addEventListener("input", calculateLoadSchedule);
+  $("#run-hours").addEventListener("input", calculateLoadSchedule);
+  $("#energy-rate").addEventListener("input", calculateLoadSchedule);
   $("#auto-balance-button").addEventListener("click", autoBalanceLoads);
   $("#clear-load-button").addEventListener("click", clearLoadSchedule);
   $("#load-table-body").addEventListener("input", updateLoadRow);
@@ -483,6 +558,23 @@ function visibleLoadRows() {
   return loadRows.slice(0, Number.parseInt($("#slot-count").value, 10));
 }
 
+function reservedSlotMap() {
+  const visibleCount = Number.parseInt($("#slot-count").value, 10);
+  const reserved = new Map();
+  loadRows.slice(0, visibleCount).forEach((row) => {
+    if (reserved.has(row.circuit)) return;
+    const step = 2;
+    const reserveCount = row.pole === "3P" ? 2 : row.pole === "2P" ? 1 : 0;
+    for (let offset = 1; offset <= reserveCount; offset += 1) {
+      const circuit = row.circuit + step * offset;
+      if (circuit <= visibleCount) {
+        reserved.set(circuit, { by: row.circuit, pole: row.pole });
+      }
+    }
+  });
+  return reserved;
+}
+
 function phaseOptions(row, panelSystem) {
   if (panelSystem === "1") return ["L-N"];
   if (row.pole === "3P") return ["L1-L2-L3"];
@@ -492,29 +584,46 @@ function phaseOptions(row, panelSystem) {
 
 function renderLoadRows() {
   const panelSystem = $("#panel-system").value;
-  $("#load-table-body").innerHTML = visibleLoadRows().map((row, index) => {
+  const visibleCount = Number.parseInt($("#slot-count").value, 10);
+  const rowsPerSide = Math.ceil(visibleCount / 2);
+  const reserved = reservedSlotMap();
+  const renderCircuitCells = (circuit) => {
+    if (circuit > visibleCount) return `<td colspan="8" class="empty-slot"></td>`;
+    const reservedInfo = reserved.get(circuit);
+    if (reservedInfo) {
+      return `
+        <td class="circuit-number">${circuit}</td>
+        <td colspan="7" class="reserved-slot">จองโดยช่อง ${reservedInfo.by} (${reservedInfo.pole})</td>
+      `;
+    }
+    const index = circuit - 1;
+    const row = loadRows[index];
     const options = phaseOptions(row, panelSystem);
     if (!options.includes(row.phase)) row.phase = options[0];
     return `
-      <tr>
-        <td>${row.circuit}</td>
-        <td><input data-index="${index}" data-field="name" value="${row.name}" placeholder="ชื่อโหลด"></td>
-        <td>
-          <select data-index="${index}" data-field="pole">
-            ${["1P", "2P", "3P"].map((pole) => `<option value="${pole}" ${row.pole === pole ? "selected" : ""}>${pole}</option>`).join("")}
-          </select>
-        </td>
-        <td><input data-index="${index}" data-field="cb" type="number" min="0" step="1" value="${row.cb}" placeholder="A"></td>
-        <td><input data-index="${index}" data-field="load" type="number" min="0" step="0.1" value="${row.load}" placeholder="ว่าง=CB"></td>
-        <td><input data-index="${index}" data-field="demand" type="number" min="0" max="100" step="1" value="${row.demand}"></td>
-        <td>
-          <select data-index="${index}" data-field="phase">
-            ${options.map((phase) => `<option value="${phase}" ${row.phase === phase ? "selected" : ""}>${phase}</option>`).join("")}
-          </select>
-        </td>
-        <td id="row-kva-${index}">0</td>
-      </tr>
+      <td class="circuit-number">${row.circuit}</td>
+      <td><input data-index="${index}" data-field="name" value="${row.name}" placeholder="ชื่อโหลด"></td>
+      <td>
+        <select data-index="${index}" data-field="pole">
+          ${["1P", "2P", "3P"].map((pole) => `<option value="${pole}" ${row.pole === pole ? "selected" : ""}>${pole}</option>`).join("")}
+        </select>
+      </td>
+      <td><input data-index="${index}" data-field="cb" type="number" min="0" step="1" value="${row.cb}" placeholder="A"></td>
+      <td><input data-index="${index}" data-field="load" type="number" min="0" step="0.1" value="${row.load}" placeholder="ว่าง=CB"></td>
+      <td><input data-index="${index}" data-field="demand" type="number" min="0" max="100" step="1" value="${row.demand}"></td>
+      <td>
+        <select data-index="${index}" data-field="phase">
+          ${options.map((phase) => `<option value="${phase}" ${row.phase === phase ? "selected" : ""}>${phase}</option>`).join("")}
+        </select>
+      </td>
+      <td id="row-kva-${index}">0</td>
     `;
+  };
+
+  $("#load-table-body").innerHTML = Array.from({ length: rowsPerSide }, (_, pairIndex) => {
+    const leftCircuit = pairIndex * 2 + 1;
+    const rightCircuit = pairIndex * 2 + 2;
+    return `<tr>${renderCircuitCells(leftCircuit)}${renderCircuitCells(rightCircuit)}</tr>`;
   }).join("");
 }
 
@@ -584,7 +693,13 @@ function sequencePhase(circuit, pole) {
 
 function calculateLoadSchedule() {
   const totals = { l1: 0, l2: 0, l3: 0, kva: 0 };
+  const reserved = reservedSlotMap();
   visibleLoadRows().forEach((row, index) => {
+    if (reserved.has(row.circuit)) {
+      const cell = $(`#row-kva-${index}`);
+      if (cell) cell.textContent = "-";
+      return;
+    }
     const amps = loadAmps(row);
     const kva = rowKva(row, amps);
     totals.kva += kva;
@@ -601,27 +716,40 @@ function calculateLoadSchedule() {
   $("#bar-l2").style.width = `${Math.min(100, (totals.l2 / maxPhase) * 100)}%`;
   $("#bar-l3").style.width = `${Math.min(100, (totals.l3 / maxPhase) * 100)}%`;
 
-  const values = [totals.l1, totals.l2, totals.l3];
+  const panelSystem = $("#panel-system").value;
+  const values = panelSystem === "1" ? [totals.l1] : [totals.l1, totals.l2, totals.l3];
   const avg = values.reduce((sum, value) => sum + value, 0) / 3;
   const unbalance = avg > 0 ? ((Math.max(...values) - Math.min(...values)) / avg) * 100 : 0;
   const panelPf = numberValue("#panel-pf", 0.85);
   const kw = totals.kva * panelPf;
-  let status = "Balance ดี";
+  const hours = numberValue("#run-hours", 8);
+  const rate = numberValue("#energy-rate", 4.5);
+  const costHour = kw * rate;
+  const costDay = costHour * hours;
+  const mainBreaker = standardBreakers.find((breaker) => breaker >= maxPhase);
+  let status = panelSystem === "1" ? "1 Phase" : "Balance ดี";
   let statusClass = "is-good";
-  if (unbalance > 20) {
+  if (panelSystem !== "1" && unbalance > 20) {
     status = "ควรปรับ";
     statusClass = "is-bad";
-  } else if (unbalance > 10) {
+  } else if (panelSystem !== "1" && unbalance > 10) {
     status = "พอใช้";
     statusClass = "is-warn";
   }
   setStatusClass($("#balance-status-card"), statusClass);
   $("#balance-status").textContent = status;
   $("#balance-note").textContent = `Unbalance ${fmt.format(unbalance)}% / รวม ${formatKva(totals.kva)} / ${formatKw(kw)}`;
+  $("#main-breaker").textContent = mainBreaker ? `${mainBreaker} A` : "เกินช่วง";
+  $("#main-breaker-note").textContent = `อิงเฟสสูงสุด ${formatAmp(maxPhase)}`;
+  $("#cost-hour").textContent = `${fmt.format(costHour)} บาท`;
+  $("#energy-kw-note").textContent = `${formatKw(kw)} x ${fmt.format(rate)} บาท/kWh`;
+  $("#cost-day").textContent = `${fmt.format(costDay)} บาท/วัน`;
+  $("#energy-day-note").textContent = `${fmt.format(hours)} ชั่วโมง/วัน`;
 }
 
 function autoBalanceLoads() {
-  const rows = visibleLoadRows().filter((row) => loadAmps(row) > 0);
+  const reserved = reservedSlotMap();
+  const rows = visibleLoadRows().filter((row) => loadAmps(row) > 0 && !reserved.has(row.circuit));
   const totals = { L1: 0, L2: 0, L3: 0 };
 
   rows.filter((row) => row.pole === "3P").forEach((row) => {
@@ -730,7 +858,6 @@ const acTypes = [
   { id: "wall", label: "Wall Type", sizes: [9000, 12000, 18000, 24000, 30000] },
   { id: "cassette", label: "Cassette Type", sizes: [18000, 24000, 30000, 36000, 48000, 60000] },
   { id: "ceiling", label: "Ceiling / Floor Type", sizes: [24000, 30000, 36000, 48000, 60000, 80000] },
-  { id: "duct", label: "Duct Type", sizes: [36000, 48000, 60000, 80000, 100000, 120000] },
   { id: "vrf", label: "VRV / VRF Indoor", sizes: [24000, 36000, 48000, 60000, 80000, 96000] },
 ];
 

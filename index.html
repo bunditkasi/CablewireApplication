@@ -65,6 +65,7 @@
             <label class="field">
               <span>วิธีเดินสาย / ตาราง</span>
               <select id="install-method"></select>
+              <div id="method-option-list" class="option-list" aria-label="ตัวเลือกวิธีเดินสาย"></div>
             </label>
 
             <label class="field">
@@ -106,6 +107,22 @@
             <label class="field">
               <span>จำนวนกลุ่มวงจร</span>
               <select id="circuit-groups"></select>
+            </label>
+
+            <label class="field">
+              <span>จำนวนสายรวมในท่อ</span>
+              <div class="input-unit">
+                <input id="conduit-wire-count" type="number" min="1" step="1" value="3">
+                <span>เส้น</span>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>ชนิดท่อ</span>
+              <select id="conduit-type">
+                <option value="EMT" selected>EMT</option>
+                <option value="IMC">IMC</option>
+              </select>
             </label>
 
             <label class="field">
@@ -156,7 +173,7 @@
               <p id="recommended-cable-note">-</p>
             </article>
             <article class="metric-card">
-              <span>พิกัดหลังปรับค่า</span>
+              <span>ตัวคูณลดจากความหนาแน่น อุณหภูมิ และช่องเดินสายไฟ</span>
               <strong id="adjusted-ampacity">-</strong>
               <p id="derating-note">-</p>
             </article>
@@ -165,10 +182,15 @@
               <strong id="voltage-drop">-</strong>
               <p id="voltage-drop-note">-</p>
             </article>
-            <article class="metric-card">
+            <article class="metric-card status-card" id="design-current-card">
               <span>กระแสออกแบบ</span>
               <strong id="design-current">-</strong>
               <p id="design-current-note">-</p>
+            </article>
+            <article class="metric-card">
+              <span>ขนาดท่อขั้นต่ำ</span>
+              <strong id="conduit-size">-</strong>
+              <p id="conduit-note">-</p>
             </article>
           </div>
         </div>
@@ -194,6 +216,7 @@
                   <th>ขนาด</th>
                   <th>พิกัดฐาน</th>
                   <th>หลังปรับค่า</th>
+                  <th>ท่อขั้นต่ำ</th>
                 </tr>
               </thead>
               <tbody id="cable-reference-body"></tbody>
@@ -246,6 +269,20 @@
             <span>Power Factor รวม</span>
             <input id="panel-pf" type="number" min="0.1" max="1" step="0.01" value="0.85">
           </label>
+          <label class="field">
+            <span>ชั่วโมงใช้งาน/วัน</span>
+            <div class="input-unit">
+              <input id="run-hours" type="number" min="0" max="24" step="0.5" value="8">
+              <span>ชม.</span>
+            </div>
+          </label>
+          <label class="field">
+            <span>ค่าไฟ</span>
+            <div class="input-unit">
+              <input id="energy-rate" type="number" min="0" step="0.01" value="4.50">
+              <span>บาท/kWh</span>
+            </div>
+          </label>
         </div>
       </section>
 
@@ -270,6 +307,21 @@
           <strong id="balance-status">-</strong>
           <p id="balance-note">-</p>
         </article>
+        <article class="metric-card">
+          <span>Main CB แนะนำ</span>
+          <strong id="main-breaker">-</strong>
+          <p id="main-breaker-note">-</p>
+        </article>
+        <article class="metric-card">
+          <span>ค่าไฟต่อชั่วโมง</span>
+          <strong id="cost-hour">-</strong>
+          <p id="energy-kw-note">-</p>
+        </article>
+        <article class="metric-card">
+          <span>ค่าไฟต่อวัน</span>
+          <strong id="cost-day">-</strong>
+          <p id="energy-day-note">-</p>
+        </article>
       </div>
 
       <section class="panel">
@@ -287,7 +339,15 @@
           <table class="load-table">
             <thead>
               <tr>
-                <th>ช่อง</th>
+                <th>ช่องซ้าย</th>
+                <th>รายการโหลด</th>
+                <th>Pole</th>
+                <th>CB</th>
+                <th>Load A</th>
+                <th>Demand</th>
+                <th>Phase</th>
+                <th>kVA</th>
+                <th>ช่องขวา</th>
                 <th>รายการโหลด</th>
                 <th>Pole</th>
                 <th>CB</th>
