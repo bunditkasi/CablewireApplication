@@ -514,6 +514,7 @@ const loadRows = Array.from({ length: 42 }, (_, index) => ({
 }));
 
 const standardBreakers = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600];
+const loadNamePresets = ["Spare", "Space", "Lighting", "Outlet", "Aircon", "Pump"];
 
 [
   { circuit: 1, name: "Lighting Zone A", pole: "1P", cb: 16, load: "", demand: 100, phase: "AUTO" },
@@ -543,6 +544,7 @@ function initLoadSchedule() {
   $("#phase-voltage").addEventListener("input", calculateLoadSchedule);
   $("#line-voltage").addEventListener("input", calculateLoadSchedule);
   $("#panel-pf").addEventListener("input", calculateLoadSchedule);
+  $("#panel-demand").addEventListener("input", calculateLoadSchedule);
   $("#run-hours").addEventListener("input", calculateLoadSchedule);
   $("#energy-rate").addEventListener("input", calculateLoadSchedule);
   $("#auto-balance-button").addEventListener("click", autoBalanceLoads);
@@ -602,15 +604,19 @@ function renderLoadRows() {
     if (!options.includes(row.phase)) row.phase = options[0];
     return `
       <td class="circuit-number">${row.circuit}</td>
-      <td><input data-index="${index}" data-field="name" value="${row.name}" placeholder="ชื่อโหลด"></td>
+      <td>${renderLoadNameControl(row, index)}</td>
       <td>
         <select data-index="${index}" data-field="pole">
           ${["1P", "2P", "3P"].map((pole) => `<option value="${pole}" ${row.pole === pole ? "selected" : ""}>${pole}</option>`).join("")}
         </select>
       </td>
-      <td><input data-index="${index}" data-field="cb" type="number" min="0" step="1" value="${row.cb}" placeholder="A"></td>
+      <td>
+        <select data-index="${index}" data-field="cb">
+          <option value="">-</option>
+          ${standardBreakers.map((breaker) => `<option value="${breaker}" ${String(row.cb) === String(breaker) ? "selected" : ""}>${breaker} A</option>`).join("")}
+        </select>
+      </td>
       <td><input data-index="${index}" data-field="load" type="number" min="0" step="0.1" value="${row.load}" placeholder="ว่าง=CB"></td>
-      <td><input data-index="${index}" data-field="demand" type="number" min="0" max="100" step="1" value="${row.demand}"></td>
       <td>
         <select data-index="${index}" data-field="phase">
           ${options.map((phase) => `<option value="${phase}" ${row.phase === phase ? "selected" : ""}>${phase}</option>`).join("")}
@@ -627,12 +633,40 @@ function renderLoadRows() {
   }).join("");
 }
 
+function renderLoadNameControl(row, index) {
+  const preset = loadNamePresets.find((item) => item.toLowerCase() === String(row.name).toLowerCase());
+  const mode = preset ? "preset" : "custom";
+  return `
+    <div class="load-name-control">
+      <select data-index="${index}" data-field="nameMode">
+        <option value="preset" ${mode === "preset" ? "selected" : ""}>เลือก</option>
+        <option value="custom" ${mode === "custom" ? "selected" : ""}>พิมพ์</option>
+      </select>
+      ${mode === "preset"
+        ? `<select data-index="${index}" data-field="name">${loadNamePresets.map((item) => `<option value="${item}" ${String(row.name).toLowerCase() === item.toLowerCase() ? "selected" : ""}>${item}</option>`).join("")}</select>`
+        : `<input data-index="${index}" data-field="name" value="${row.name}" placeholder="ชื่อโหลด">`
+      }
+    </div>
+  `;
+}
+
 function updateLoadRow(event) {
   const target = event.target;
   const index = Number.parseInt(target.dataset.index, 10);
   const field = target.dataset.field;
   if (!Number.isFinite(index) || !field) return;
+  if (field === "nameMode") {
+    loadRows[index].name = target.value === "preset" ? "Spare" : "";
+    renderLoadRows();
+    calculateLoadSchedule();
+    return;
+  }
   loadRows[index][field] = target.value;
+  if (field === "name" && String(target.value).toLowerCase() === "space") {
+    loadRows[index].load = "0";
+    loadRows[index].cb = "";
+    renderLoadRows();
+  }
   if (field === "pole") {
     loadRows[index].phase = "AUTO";
     renderLoadRows();
@@ -641,10 +675,11 @@ function updateLoadRow(event) {
 }
 
 function loadAmps(row) {
+  if (String(row.name).trim().toLowerCase() === "space") return 0;
   const load = Number.parseFloat(row.load);
   const cb = Number.parseFloat(row.cb);
   const base = Number.isFinite(load) && load > 0 ? load : Number.isFinite(cb) ? cb : 0;
-  const demand = Number.parseFloat(row.demand);
+  const demand = numberValue("#panel-demand", 100);
   return base * ((Number.isFinite(demand) ? demand : 100) / 100);
 }
 
@@ -740,7 +775,7 @@ function calculateLoadSchedule() {
   $("#balance-status").textContent = status;
   $("#balance-note").textContent = `Unbalance ${fmt.format(unbalance)}% / รวม ${formatKva(totals.kva)} / ${formatKw(kw)}`;
   $("#main-breaker").textContent = mainBreaker ? `${mainBreaker} A` : "เกินช่วง";
-  $("#main-breaker-note").textContent = `อิงเฟสสูงสุด ${formatAmp(maxPhase)}`;
+  $("#main-breaker-note").textContent = `${panelSystem === "1" ? "1 Phase" : "3 Phase"} / อิงเฟสสูงสุด ${formatAmp(maxPhase)}`;
   $("#cost-hour").textContent = `${fmt.format(costHour)} บาท`;
   $("#energy-kw-note").textContent = `${formatKw(kw)} x ${fmt.format(rate)} บาท/kWh`;
   $("#cost-day").textContent = `${fmt.format(costDay)} บาท/วัน`;
@@ -794,14 +829,28 @@ function clearLoadSchedule() {
 }
 
 function initPfTool() {
-  $("#pf-form").addEventListener("input", renderPf);
-  $("#pf-form").addEventListener("change", renderPf);
-  ["#nameplate-power", "#nameplate-unit", "#nameplate-system", "#nameplate-voltage", "#nameplate-pf", "#nameplate-eff"].forEach((selector) => {
+  $("#pf-system").addEventListener("change", () => {
+    syncVoltageWithSystem("#pf-system", "#pf-voltage");
+    renderPf();
+  });
+  ["#pf-voltage", "#pf-current", "#pf-value", "#efficiency-value", "#target-pf"].forEach((selector) => {
+    $(selector).addEventListener("input", renderPf);
+    $(selector).addEventListener("change", renderPf);
+  });
+  $("#nameplate-system").addEventListener("change", () => {
+    syncVoltageWithSystem("#nameplate-system", "#nameplate-voltage");
+    renderNameplate();
+  });
+  ["#nameplate-power", "#nameplate-unit", "#nameplate-voltage", "#nameplate-pf", "#nameplate-eff"].forEach((selector) => {
     $(selector).addEventListener("input", renderNameplate);
     $(selector).addEventListener("change", renderNameplate);
   });
   renderPf();
   renderNameplate();
+}
+
+function syncVoltageWithSystem(systemSelector, voltageSelector) {
+  $(voltageSelector).value = $(systemSelector).value === "1" ? "230" : "400";
 }
 
 function renderPf() {
