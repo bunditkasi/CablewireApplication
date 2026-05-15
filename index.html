@@ -3,115 +3,539 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IEC 01 Cable Sizing</title>
+  <title>CableWire Application</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app-shell">
-    <section class="hero-panel">
-      <p class="eyebrow">IEC 01 / THW Cable Tool</p>
-      <h1>คำนวณขนาดสายไฟ IEC 01</h1>
-      <p class="hero-copy">
-        เครื่องมือเลือกสายไฟเบื้องต้นสำหรับงานอาคาร โดยอ้างอิงค่าพิกัดกระแสของสาย
-        <strong>60227 IEC 01</strong> ตามตารางที่ใช้งานทั่วไปในไทย
-      </p>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">CW</span>
+      <div>
+        <strong>CableWire Application</strong>
+        <small>Electrical sizing dashboard</small>
+      </div>
+    </div>
 
-      <div class="hero-tags">
-        <span>ใส่ค่ากระแสไฟฟ้า (I)</span>
-        <span>เลือกขนาดสายไฟ (sq.mm.)</span>
-        <span>ดูผลผ่าน/ไม่ผ่านและขนาดแนะนำ</span>
+    <nav class="module-tabs" aria-label="เมนูเครื่องมือ">
+      <button class="tab-button is-active" type="button" data-view="cable">
+        <i data-lucide="cable"></i>
+        <span>เลือกสายไฟ</span>
+      </button>
+      <button class="tab-button" type="button" data-view="load">
+        <i data-lucide="panel-top"></i>
+        <span>ตารางโหลด</span>
+      </button>
+      <button class="tab-button" type="button" data-view="pf">
+        <i data-lucide="activity"></i>
+        <span>PF / Motor</span>
+      </button>
+      <button class="tab-button" type="button" data-view="btu">
+        <i data-lucide="snowflake"></i>
+        <span>BTU แอร์</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="workspace">
+    <section id="view-cable" class="view is-active" aria-labelledby="cable-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">EIT 2564 / Cable sizing</p>
+          <h1 id="cable-title">เลือกสายไฟพร้อม Derating และ Voltage Drop</h1>
+        </div>
+        <span class="standard-pill">PVC, VCT, CV/XLPE</span>
+      </div>
+
+      <div class="layout-rail">
+        <form class="panel input-panel" id="cable-form">
+          <div class="panel-head">
+            <h2>ข้อมูลวงจร</h2>
+            <p>ถ้าใส่ขนาด CB ระบบจะใช้ CB เป็นกระแสออกแบบหลัก</p>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>ชนิดสายไฟ</span>
+              <select id="cable-type"></select>
+            </label>
+
+            <label class="field">
+              <span>วิธีเดินสาย / ตาราง</span>
+              <select id="install-method"></select>
+            </label>
+
+            <label class="field">
+              <span>ลักษณะสาย</span>
+              <select id="core-type"></select>
+            </label>
+
+            <label class="field">
+              <span>ตัวนำกระแส</span>
+              <select id="conductor-count">
+                <option value="2">2 เส้น</option>
+                <option value="3">3 เส้น</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>กระแสโหลด</span>
+              <div class="input-unit">
+                <input id="cable-current" type="number" min="0" step="0.1" value="32">
+                <span>A</span>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>ขนาด CB</span>
+              <select id="breaker-size"></select>
+            </label>
+
+            <label class="field">
+              <span>ขนาดสายที่ต้องการตรวจ</span>
+              <select id="selected-cable-size"></select>
+            </label>
+
+            <label class="field">
+              <span>อุณหภูมิโดยรอบ</span>
+              <select id="ambient-temp"></select>
+            </label>
+
+            <label class="field">
+              <span>จำนวนกลุ่มวงจร</span>
+              <select id="circuit-groups"></select>
+            </label>
+
+            <label class="field">
+              <span>ระบบไฟ</span>
+              <select id="cable-phase">
+                <option value="1">1 Phase</option>
+                <option value="3" selected>3 Phase</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>แรงดัน</span>
+              <div class="input-unit">
+                <input id="cable-voltage" type="number" min="1" step="1" value="400">
+                <span>V</span>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>ความยาวสาย</span>
+              <div class="input-unit">
+                <input id="cable-length" type="number" min="0" step="1" value="30">
+                <span>m</span>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>VD สูงสุด</span>
+              <div class="input-unit">
+                <input id="vd-limit" type="number" min="0.1" step="0.1" value="3">
+                <span>%</span>
+              </div>
+            </label>
+          </div>
+        </form>
+
+        <div class="result-stack">
+          <article class="metric-card status-card" id="cable-status-card">
+            <span>สถานะ</span>
+            <strong id="cable-status">-</strong>
+            <p id="cable-status-note">-</p>
+          </article>
+
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>สายขั้นต่ำแนะนำ</span>
+              <strong id="recommended-cable">-</strong>
+              <p id="recommended-cable-note">-</p>
+            </article>
+            <article class="metric-card">
+              <span>พิกัดหลังปรับค่า</span>
+              <strong id="adjusted-ampacity">-</strong>
+              <p id="derating-note">-</p>
+            </article>
+            <article class="metric-card">
+              <span>Voltage Drop</span>
+              <strong id="voltage-drop">-</strong>
+              <p id="voltage-drop-note">-</p>
+            </article>
+            <article class="metric-card">
+              <span>กระแสออกแบบ</span>
+              <strong id="design-current">-</strong>
+              <p id="design-current-note">-</p>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-column">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>ลำดับการคำนวณ</h2>
+            <p id="cable-breakdown">-</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>ตารางที่กำลังใช้</h2>
+            <p id="active-table-label">-</p>
+          </div>
+          <div class="table-wrap compact">
+            <table>
+              <thead>
+                <tr>
+                  <th>ขนาด</th>
+                  <th>พิกัดฐาน</th>
+                  <th>หลังปรับค่า</th>
+                </tr>
+              </thead>
+              <tbody id="cable-reference-body"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </section>
 
-    <section class="calculator-panel">
-      <div class="card form-card">
-        <div class="card-head">
-          <h2>ข้อมูลคำนวณ</h2>
-          <p>กรอกกระแสโหลด และเลือกขนาดสายที่ต้องการตรวจสอบ</p>
+    <section id="view-load" class="view" aria-labelledby="load-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Panel schedule</p>
+          <h1 id="load-title">ตารางโหลด 1 Phase / 3 Phase สูงสุด 42 ช่อง</h1>
         </div>
+        <button class="action-button primary" id="auto-balance-button" type="button">
+          <i data-lucide="shuffle"></i>
+          <span>Auto Balance</span>
+        </button>
+      </div>
 
-        <form id="cable-form" class="cable-form">
+      <section class="panel">
+        <div class="form-grid load-control-grid">
           <label class="field">
-            <span>กระแสไฟฟ้า (I)</span>
-            <div class="input-wrap">
-              <input id="current-input" type="number" min="0" step="0.1" value="20" placeholder="เช่น 32">
-              <span class="unit">A</span>
+            <span>ระบบตู้</span>
+            <select id="panel-system">
+              <option value="3" selected>3 Phase 4 Wire</option>
+              <option value="1">1 Phase 2 Wire</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>จำนวนช่อง</span>
+            <select id="slot-count"></select>
+          </label>
+          <label class="field">
+            <span>แรงดัน L-N</span>
+            <div class="input-unit">
+              <input id="phase-voltage" type="number" min="1" step="1" value="230">
+              <span>V</span>
             </div>
           </label>
-
           <label class="field">
-            <span>ขนาดสายไฟ</span>
-            <select id="size-select"></select>
+            <span>แรงดัน L-L</span>
+            <div class="input-unit">
+              <input id="line-voltage" type="number" min="1" step="1" value="400">
+              <span>V</span>
+            </div>
           </label>
-        </form>
-      </div>
-
-      <div class="results-grid">
-        <article class="card result-card status-card">
-          <p class="result-label">สถานะสายที่เลือก</p>
-          <h3 id="status-title">พร้อมใช้งาน</h3>
-          <p id="status-copy" class="result-copy"></p>
-        </article>
-
-        <article class="card result-card">
-          <p class="result-label">พิกัดกระแสของสายที่เลือก</p>
-          <h3 id="selected-ampacity">-</h3>
-          <p id="selected-note" class="result-copy"></p>
-        </article>
-
-        <article class="card result-card accent-card">
-          <p class="result-label">ขนาดสายขั้นต่ำที่แนะนำ</p>
-          <h3 id="recommended-size">-</h3>
-          <p id="recommended-copy" class="result-copy"></p>
-        </article>
-
-        <article class="card result-card">
-          <p class="result-label">กระแสเผื่อ</p>
-          <h3 id="margin-value">-</h3>
-          <p class="result-copy">คำนวณจากพิกัดกระแสของสายลบด้วยกระแสโหลดที่ป้อน</p>
-        </article>
-      </div>
-
-      <div class="card table-card">
-        <div class="card-head">
-          <h2>ตารางอ้างอิงในแอป</h2>
-          <p>แสดงค่าพิกัดกระแสที่ใช้คำนวณในเครื่องมือนี้</p>
+          <label class="field">
+            <span>Power Factor รวม</span>
+            <input id="panel-pf" type="number" min="0.1" max="1" step="0.01" value="0.85">
+          </label>
         </div>
-        <div class="table-wrap">
-          <table>
+      </section>
+
+      <div class="metric-grid phase-summary">
+        <article class="metric-card">
+          <span>L1</span>
+          <strong id="phase-l1">0 A</strong>
+          <div class="bar-track"><div id="bar-l1" class="bar-fill"></div></div>
+        </article>
+        <article class="metric-card">
+          <span>L2</span>
+          <strong id="phase-l2">0 A</strong>
+          <div class="bar-track"><div id="bar-l2" class="bar-fill"></div></div>
+        </article>
+        <article class="metric-card">
+          <span>L3</span>
+          <strong id="phase-l3">0 A</strong>
+          <div class="bar-track"><div id="bar-l3" class="bar-fill"></div></div>
+        </article>
+        <article class="metric-card status-card" id="balance-status-card">
+          <span>Balance</span>
+          <strong id="balance-status">-</strong>
+          <p id="balance-note">-</p>
+        </article>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head table-actions">
+          <div>
+            <h2>Load Schedule</h2>
+            <p>โหลดจริงมีค่าสูงกว่า CB ให้ใส่ในช่อง Load A ระบบจะใช้ Load A แทน CB</p>
+          </div>
+          <button class="action-button" id="clear-load-button" type="button">
+            <i data-lucide="eraser"></i>
+            <span>ล้างตาราง</span>
+          </button>
+        </div>
+        <div class="table-wrap load-table-wrap">
+          <table class="load-table">
             <thead>
               <tr>
-                <th>ขนาดสาย (sq.mm.)</th>
-                <th>พิกัดกระแส (A)</th>
-                <th>หมายเหตุ</th>
+                <th>ช่อง</th>
+                <th>รายการโหลด</th>
+                <th>Pole</th>
+                <th>CB</th>
+                <th>Load A</th>
+                <th>Demand</th>
+                <th>Phase</th>
+                <th>kVA</th>
               </tr>
             </thead>
-            <tbody id="reference-body"></tbody>
+            <tbody id="load-table-body"></tbody>
           </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-pf" class="view" aria-labelledby="pf-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Power factor / Motor</p>
+          <h1 id="pf-title">คำนวณ kVA, kW, Efficiency, HP และ kVAR</h1>
         </div>
       </div>
 
-      <div class="card note-card">
-        <h2>ข้อสมมติที่ใช้</h2>
-        <ul>
-          <li>ใช้ค่าพิกัดกระแสของสายทองแดงหุ้มฉนวน PVC ชนิด 60227 IEC 01 อุณหภูมิตัวนำ 70°C</li>
-          <li>อ้างอิงคอลัมน์การใช้งานทั่วไปสำหรับสายแกนเดียว ตัวนำกระแส 2 เส้น ในการติดตั้งกลุ่มที่ 2 จากตารางที่ค้นพบ</li>
-          <li>ค่าที่แสดงยังไม่ได้ปรับแก้ด้วยตัวคูณอุณหภูมิแวดล้อม, การรวมกลุ่มวงจร, แรงดันตก และเงื่อนไขเฉพาะหน้างาน</li>
-          <li>ขนาด 175 sq.mm. ถูกแสดงเป็นค่าประมาณเพื่อรองรับโจทย์ที่ระบุ เนื่องจากตารางมาตรฐานชุดเดียวกันที่พบระบุ 185 sq.mm. เป็นขนาดหลัก</li>
-        </ul>
-        <p class="source-line">
-          แหล่งอ้างอิงออนไลน์ที่ใช้ตั้งค่าข้อมูล:
-          <a href="https://www.ssupercable.com/wp-content/uploads/2022/08/SSUPERCABLE.pdf" target="_blank" rel="noreferrer">Super Cable Technical Data</a>
-          และ
-          <a href="https://www.erawan-cable.com/resources/books/electric_design_handbook.pdf" target="_blank" rel="noreferrer">Electric Design Handbook</a>
-        </p>
+      <div class="layout-rail">
+        <form class="panel input-panel" id="pf-form">
+          <div class="panel-head">
+            <h2>ค่าที่วัดได้</h2>
+            <p>PF คือสัดส่วนกำลังจริง ส่วน Efficiency คือกำลังออกเทียบกับกำลังจริงที่เข้าเครื่อง</p>
+          </div>
+          <div class="form-grid">
+            <label class="field">
+              <span>ระบบไฟ</span>
+              <select id="pf-system">
+                <option value="1">1 Phase</option>
+                <option value="3" selected>3 Phase</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>แรงดัน</span>
+              <div class="input-unit">
+                <input id="pf-voltage" type="number" min="1" step="1" value="400">
+                <span>V</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>กระแส</span>
+              <div class="input-unit">
+                <input id="pf-current" type="number" min="0" step="0.1" value="40">
+                <span>A</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>Power Factor</span>
+              <input id="pf-value" type="number" min="0.01" max="1" step="0.01" value="0.82">
+            </label>
+            <label class="field">
+              <span>Efficiency</span>
+              <div class="input-unit">
+                <input id="efficiency-value" type="number" min="1" max="100" step="0.1" value="88">
+                <span>%</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>PF เป้าหมาย</span>
+              <input id="target-pf" type="number" min="0.01" max="1" step="0.01" value="0.95">
+            </label>
+          </div>
+        </form>
+
+        <div class="metric-grid pf-results">
+          <article class="metric-card">
+            <span>Apparent Power</span>
+            <strong id="pf-kva">-</strong>
+            <p>กำลังที่ระบบไฟต้องจ่าย</p>
+          </article>
+          <article class="metric-card">
+            <span>Real Input</span>
+            <strong id="pf-kw-input">-</strong>
+            <p>kVA x PF</p>
+          </article>
+          <article class="metric-card">
+            <span>Output Power</span>
+            <strong id="pf-kw-output">-</strong>
+            <p id="pf-hp-output">-</p>
+          </article>
+          <article class="metric-card">
+            <span>Loss</span>
+            <strong id="pf-loss">-</strong>
+            <p id="pf-loss-note">-</p>
+          </article>
+          <article class="metric-card">
+            <span>Reactive Power</span>
+            <strong id="pf-kvar">-</strong>
+            <p>กำลังรีแอคทีฟของโหลด</p>
+          </article>
+          <article class="metric-card status-card" id="pf-status-card">
+            <span>Capacitor</span>
+            <strong id="capacitor-kvar">-</strong>
+            <p id="capacitor-note">-</p>
+          </article>
+        </div>
       </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>คำนวณกลับจาก Nameplate Motor</h2>
+          <p>ใช้เมื่อรู้ขนาดมอเตอร์แล้วต้องการประมาณกระแสที่ควรเห็น</p>
+        </div>
+        <div class="form-grid nameplate-grid">
+          <label class="field">
+            <span>กำลัง Output</span>
+            <input id="nameplate-power" type="number" min="0" step="0.1" value="15">
+          </label>
+          <label class="field">
+            <span>หน่วย</span>
+            <select id="nameplate-unit">
+              <option value="kw" selected>kW</option>
+              <option value="hp">HP</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>ระบบไฟ</span>
+            <select id="nameplate-system">
+              <option value="1">1 Phase</option>
+              <option value="3" selected>3 Phase</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>แรงดัน</span>
+            <div class="input-unit">
+              <input id="nameplate-voltage" type="number" min="1" step="1" value="400">
+              <span>V</span>
+            </div>
+          </label>
+          <label class="field">
+            <span>PF</span>
+            <input id="nameplate-pf" type="number" min="0.01" max="1" step="0.01" value="0.85">
+          </label>
+          <label class="field">
+            <span>Efficiency</span>
+            <div class="input-unit">
+              <input id="nameplate-eff" type="number" min="1" max="100" step="0.1" value="90">
+              <span>%</span>
+            </div>
+          </label>
+        </div>
+        <div class="metric-grid inline-results">
+          <article class="metric-card">
+            <span>Input kW</span>
+            <strong id="nameplate-input-kw">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>Input kVA</span>
+            <strong id="nameplate-kva">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>กระแสประมาณ</span>
+            <strong id="nameplate-current">-</strong>
+          </article>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-btu" class="view" aria-labelledby="btu-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Air conditioner</p>
+          <h1 id="btu-title">คำนวณ BTU และจำนวนแอร์</h1>
+        </div>
+      </div>
+
+      <div class="layout-rail">
+        <form class="panel input-panel" id="btu-form">
+          <div class="panel-head">
+            <h2>ข้อมูลพื้นที่</h2>
+            <p>สูตรหลัก: BTU รวม = พื้นที่ x สัมประสิทธิ์ความเย็น</p>
+          </div>
+          <div class="form-grid">
+            <label class="field">
+              <span>ชนิดพื้นที่</span>
+              <select id="room-type"></select>
+            </label>
+            <label class="field">
+              <span>พื้นที่</span>
+              <div class="input-unit">
+                <input id="room-area" type="number" min="0" step="1" value="600">
+                <span>ตร.ม.</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>สัมประสิทธิ์ความเย็น</span>
+              <div class="input-unit">
+                <input id="cooling-factor" type="number" min="1" step="10" value="1000">
+                <span>BTU/ตร.ม.</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>ชนิดแอร์</span>
+              <select id="ac-type"></select>
+            </label>
+            <label class="field">
+              <span>BTU ต่อเครื่อง</span>
+              <select id="ac-btu-size"></select>
+            </label>
+            <label class="field">
+              <span>Custom BTU</span>
+              <div class="input-unit">
+                <input id="custom-btu" type="number" min="0" step="1000" value="0">
+                <span>BTU</span>
+              </div>
+            </label>
+          </div>
+        </form>
+
+        <div class="metric-grid btu-results">
+          <article class="metric-card">
+            <span>BTU รวมที่ต้องการ</span>
+            <strong id="required-btu">-</strong>
+            <p id="btu-formula">-</p>
+          </article>
+          <article class="metric-card">
+            <span>จำนวนที่คำนวณได้</span>
+            <strong id="exact-ac-count">-</strong>
+            <p>ก่อนปัดขึ้น</p>
+          </article>
+          <article class="metric-card status-card" id="btu-status-card">
+            <span>จำนวนติดตั้งจริง</span>
+            <strong id="rounded-ac-count">-</strong>
+            <p id="installed-btu-note">-</p>
+          </article>
+          <article class="metric-card">
+            <span>BTU เผื่อ</span>
+            <strong id="reserve-btu">-</strong>
+            <p id="reserve-percent">-</p>
+          </article>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>สรุปสำหรับส่งต่อ</h2>
+          <p id="btu-summary">-</p>
+        </div>
+      </section>
     </section>
   </main>
 
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
