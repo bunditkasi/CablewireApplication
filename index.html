@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IEC 01 Cable Sizing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero-panel">
+      <p class="eyebrow">IEC 01 / THW Cable Tool</p>
+      <h1>คำนวณขนาดสายไฟ IEC 01</h1>
+      <p class="hero-copy">
+        เครื่องมือเลือกสายไฟเบื้องต้นสำหรับงานอาคาร โดยอ้างอิงค่าพิกัดกระแสของสาย
+        <strong>60227 IEC 01</strong> ตามตารางที่ใช้งานทั่วไปในไทย
+      </p>
+
+      <div class="hero-tags">
+        <span>ใส่ค่ากระแสไฟฟ้า (I)</span>
+        <span>เลือกขนาดสายไฟ (sq.mm.)</span>
+        <span>ดูผลผ่าน/ไม่ผ่านและขนาดแนะนำ</span>
+      </div>
+    </section>
+
+    <section class="calculator-panel">
+      <div class="card form-card">
+        <div class="card-head">
+          <h2>ข้อมูลคำนวณ</h2>
+          <p>กรอกกระแสโหลด และเลือกขนาดสายที่ต้องการตรวจสอบ</p>
+        </div>
+
+        <form id="cable-form" class="cable-form">
+          <label class="field">
+            <span>กระแสไฟฟ้า (I)</span>
+            <div class="input-wrap">
+              <input id="current-input" type="number" min="0" step="0.1" value="20" placeholder="เช่น 32">
+              <span class="unit">A</span>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>ขนาดสายไฟ</span>
+            <select id="size-select"></select>
+          </label>
+        </form>
+      </div>
+
+      <div class="results-grid">
+        <article class="card result-card status-card">
+          <p class="result-label">สถานะสายที่เลือก</p>
+          <h3 id="status-title">พร้อมใช้งาน</h3>
+          <p id="status-copy" class="result-copy"></p>
+        </article>
+
+        <article class="card result-card">
+          <p class="result-label">พิกัดกระแสของสายที่เลือก</p>
+          <h3 id="selected-ampacity">-</h3>
+          <p id="selected-note" class="result-copy"></p>
+        </article>
+
+        <article class="card result-card accent-card">
+          <p class="result-label">ขนาดสายขั้นต่ำที่แนะนำ</p>
+          <h3 id="recommended-size">-</h3>
+          <p id="recommended-copy" class="result-copy"></p>
+        </article>
+
+        <article class="card result-card">
+          <p class="result-label">กระแสเผื่อ</p>
+          <h3 id="margin-value">-</h3>
+          <p class="result-copy">คำนวณจากพิกัดกระแสของสายลบด้วยกระแสโหลดที่ป้อน</p>
+        </article>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-head">
+          <h2>ตารางอ้างอิงในแอป</h2>
+          <p>แสดงค่าพิกัดกระแสที่ใช้คำนวณในเครื่องมือนี้</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ขนาดสาย (sq.mm.)</th>
+                <th>พิกัดกระแส (A)</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="reference-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card note-card">
+        <h2>ข้อสมมติที่ใช้</h2>
+        <ul>
+          <li>ใช้ค่าพิกัดกระแสของสายทองแดงหุ้มฉนวน PVC ชนิด 60227 IEC 01 อุณหภูมิตัวนำ 70°C</li>
+          <li>อ้างอิงคอลัมน์การใช้งานทั่วไปสำหรับสายแกนเดียว ตัวนำกระแส 2 เส้น ในการติดตั้งกลุ่มที่ 2 จากตารางที่ค้นพบ</li>
+          <li>ค่าที่แสดงยังไม่ได้ปรับแก้ด้วยตัวคูณอุณหภูมิแวดล้อม, การรวมกลุ่มวงจร, แรงดันตก และเงื่อนไขเฉพาะหน้างาน</li>
+          <li>ขนาด 175 sq.mm. ถูกแสดงเป็นค่าประมาณเพื่อรองรับโจทย์ที่ระบุ เนื่องจากตารางมาตรฐานชุดเดียวกันที่พบระบุ 185 sq.mm. เป็นขนาดหลัก</li>
+        </ul>
+        <p class="source-line">
+          แหล่งอ้างอิงออนไลน์ที่ใช้ตั้งค่าข้อมูล:
+          <a href="https://www.ssupercable.com/wp-content/uploads/2022/08/SSUPERCABLE.pdf" target="_blank" rel="noreferrer">Super Cable Technical Data</a>
+          และ
+          <a href="https://www.erawan-cable.com/resources/books/electric_design_handbook.pdf" target="_blank" rel="noreferrer">Electric Design Handbook</a>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
