@@ -634,20 +634,7 @@ function renderLoadRows() {
 }
 
 function renderLoadNameControl(row, index) {
-  const preset = loadNamePresets.find((item) => item.toLowerCase() === String(row.name).toLowerCase());
-  const mode = preset ? "preset" : "custom";
-  return `
-    <div class="load-name-control">
-      <select data-index="${index}" data-field="nameMode">
-        <option value="preset" ${mode === "preset" ? "selected" : ""}>เลือก</option>
-        <option value="custom" ${mode === "custom" ? "selected" : ""}>พิมพ์</option>
-      </select>
-      ${mode === "preset"
-        ? `<select data-index="${index}" data-field="name">${loadNamePresets.map((item) => `<option value="${item}" ${String(row.name).toLowerCase() === item.toLowerCase() ? "selected" : ""}>${item}</option>`).join("")}</select>`
-        : `<input data-index="${index}" data-field="name" value="${row.name}" placeholder="ชื่อโหลด">`
-      }
-    </div>
-  `;
+  return `<input data-index="${index}" data-field="name" list="load-name-presets" value="${row.name}" placeholder="Spare, Space, Lighting...">`;
 }
 
 function updateLoadRow(event) {
@@ -655,12 +642,6 @@ function updateLoadRow(event) {
   const index = Number.parseInt(target.dataset.index, 10);
   const field = target.dataset.field;
   if (!Number.isFinite(index) || !field) return;
-  if (field === "nameMode") {
-    loadRows[index].name = target.value === "preset" ? "Spare" : "";
-    renderLoadRows();
-    calculateLoadSchedule();
-    return;
-  }
   loadRows[index][field] = target.value;
   if (field === "name" && String(target.value).toLowerCase() === "space") {
     loadRows[index].load = "0";
